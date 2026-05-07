@@ -1,46 +1,240 @@
-# Getting Started with Create React App
+# KnowledgeClaw
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+KnowledgeClaw is an OpenClaw-style engineering memory assistant for software teams. It turns GitHub history into searchable durable memory, then helps developers answer "why was this built this way?", identify module ownership risk, and receive proactive warnings before risky code changes.
 
-## Available Scripts
+## Hackathon Fit
 
-In the project directory, you can run:
+- Theme: Productivity Platforms
+- Problem: Engineering teams lose decision context across commits, pull requests, issues, meetings, and handoffs.
+- Solution: GitHub ingestion + LLM extraction + ChromaDB memory + Groq answers + React dashboard + proactive alerts.
+- Business value: Faster onboarding, fewer repeated mistakes, lower bus-factor risk, better code review context.
 
-### `npm start`
+## Core Features
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- Source-backed question answering over team decisions
+- ChromaDB vector memory with module, author, impact, and source metadata
+- Knowledge Map API for module and contributor relationships
+- Bus Factor API for single-owner risk detection
+- Simulated proactive warning before editing sensitive files
+- OpenClaw-style `KnowledgeClaw.skill.md`, `MEMORY.md`, and `HEARTBEAT.md`
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Architecture
 
-### `npm test`
+```txt
+GitHub Repo
+   |
+   |  ingester.ts
+   v
+data/raw/*.json
+   |
+   |  extractor.py + Groq
+   v
+ChromaDB durable memory
+   |
+   |  query_api.py
+   v
+React dashboard / ngrok / OpenClaw skill
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Backend Setup
 
-### `npm run build`
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+npm install
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Create `.env`:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```env
+GROQ_API_KEY=your_groq_key
+GITHUB_TOKEN=your_github_token
+GITHUB_OWNER=your_github_username
+GITHUB_REPO=your_repo_name
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Do not commit `.env`.
 
-### `npm run eject`
+## Run
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Seed demo memory:
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+npm run seed
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+Start the API:
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+```bash
+npm run api
+```
 
-## Learn More
+Backend runs at:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```txt
+http://localhost:5001
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+For partner frontend access, expose it with ngrok:
+
+```bash
+ngrok http 5001
+```
+
+Use the active ngrok URL in the frontend and append `/query` for search requests.
+
+## API Routes
+
+### Health
+
+```http
+GET /health
+```
+
+### Ask KnowledgeClaw
+
+```http
+POST /query
+Content-Type: application/json
+
+{"query": "Why JWT?"}
+```
+
+Returns:
+
+- `answer`
+- `sources`
+- `total_found`
+- `confidence`
+- `trace`
+
+### Knowledge Map
+
+```http
+GET /knowledge-map
+```
+
+Returns module, author, and relationship data for visualization.
+
+### Bus Factor
+
+```http
+GET /bus-factor
+```
+
+Returns module-level ownership risk and recommendations.
+
+### Proactive Change Warning
+
+```http
+POST /simulate-change
+Content-Type: application/json
+
+{"file": "auth/middleware.js"}
+```
+
+Returns a source-backed warning before a risky edit.
+
+### Demo Guide
+
+```http
+GET /demo
+```
+
+Returns the recommended demo scenarios and judging fit.
+
+## Frontend Integration
+
+For the Search page:
+
+```ts
+const res = await fetch(`${API_BASE_URL}/query`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": "true",
+  },
+  body: JSON.stringify({ query }),
+});
+```
+
+For local development:
+
+```env
+VITE_API_BASE_URL=http://localhost:5001
+```
+
+For partner demo through ngrok:
+
+```env
+VITE_API_BASE_URL=https://your-active-ngrok-url.ngrok-free.dev
+```
+
+Restart the React dev server after changing `.env`.
+
+## Live Demo Startup Order
+
+Use this order for the final demo:
+
+1. Start OpenClaw WhatsApp gateway:
+
+```powershell
+openclaw gateway restart --force
+Start-Sleep -Seconds 50
+openclaw channels status
+```
+
+Continue only when status says WhatsApp is `enabled, configured, linked, running, connected`.
+
+2. Start the KnowledgeClaw backend:
+
+```powershell
+cd C:\Users\AKSHIT\Desktop\KnowledgeClaw\knowledge-engine
+python src/query_api.py
+```
+
+3. If the frontend or teammate needs a public backend URL, start ngrok:
+
+```powershell
+ngrok http 5001
+```
+
+Copy the active forwarding URL into the frontend `VITE_API_BASE_URL`, then restart the frontend dev server.
+
+4. Start the React frontend from the frontend project folder:
+
+```powershell
+npm run dev
+```
+
+If the frontend was created with Create React App instead of Vite, use `npm start`.
+
+## Winning Demo Flow
+
+1. Show the problem: "Teams forget why decisions were made."
+2. Ask `Why JWT?` and show an answer with sources.
+3. Open Knowledge Map and show module-author memory relationships.
+4. Open Bus Factor and show high-risk modules.
+5. Run simulate change for `auth/middleware.js` and show proactive warning.
+6. Explain OpenClaw fit: skill file, durable memory, heartbeat behavior, multi-channel potential.
+
+More submission material is in `docs/`:
+
+- `docs/DEMO_SCRIPT.md`
+- `docs/PPT_OUTLINE.md`
+- `docs/SUBMISSION_CHECKLIST.md`
+- `docs/AI_DISCLOSURE.md`
+
+## Evaluation Alignment
+
+- Working prototype / functionality: API, frontend, ChromaDB, Groq, ngrok
+- Technical depth: GitHub ingestion, extraction, vector search, metadata, risk scoring
+- UX / novelty: searchable memory, map, bus factor, proactive warning
+- Theme relevance: Productivity Platforms for engineering teams
+- Documentation: setup, routes, demo flow, memory and skill files
+
+## Team Roles
+
+- Akshit: backend, GitHub ingestion, ChromaDB memory, Groq API, ngrok deployment, proactive alert logic
+- Ishita: React dashboard, Search UI, Knowledge Map page, Bus Factor page, demo UX polish
