@@ -1,0 +1,6 @@
+chromadb
+flask
+flask-cors
+groq
+python-dotenv
+requests
