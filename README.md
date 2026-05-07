@@ -143,7 +143,7 @@ Gateway status: linked · running · connected
 ## Phase 2 Submission Checklist
 
 - [x] Source Code (all files in this repo)
-- [x] Presentation (`KnowledgeClaw_Phase2_Submission.pptx`)
+- [x] Presentation (`KnowledgeClaw_Phase2_Submission.pptx`) (Click View Raw)
 - [x] Video (`demo_video.mp4` — see repo)
 - [x] AI Disclosure (`AI_DISCLOSURE.md`)
 - [x] README (this file)
